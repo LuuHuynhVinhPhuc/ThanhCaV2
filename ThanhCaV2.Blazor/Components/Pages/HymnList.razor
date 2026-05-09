@@ -6,6 +6,7 @@
 @using ThanhCaV2.Share.Enums
 @inject IMediator Mediator
 @inject NavigationManager Navigation
+@inject ThanhCaV2.Blazor.Services.ToastService ToastService
 @rendermode InteractiveServer
 
 <PageTitle>Danh sách Thánh Ca</PageTitle>
@@ -168,6 +169,14 @@
 
     private async Task AddToPlaylist(Guid id)
     {
-        await Mediator.Send(new AddToPlaylistCommand(id));
+        var success = await Mediator.Send(new AddToPlaylistCommand(id));
+        if (success)
+        {
+            ToastService.ShowSuccess("Đã thêm vào danh sách lễ");
+        }
+        else
+        {
+            ToastService.ShowWarning("Bài hát này đã có trong danh sách");
+        }
     }
 }

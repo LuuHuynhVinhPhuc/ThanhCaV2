@@ -5,12 +5,12 @@ using ThanhCaV2.Domain.Models;
 
 namespace ThanhCaV2.Application.Playlist;
 
-public record AddToPlaylistCommand(Guid HymnId) : IRequest;
+public record AddToPlaylistCommand(Guid HymnId) : IRequest<bool>;
 public record RemoveFromPlaylistCommand(Guid Id) : IRequest;
 public record ClearPlaylistCommand() : IRequest;
 
 public class PlaylistCommandHandlers : 
-    IRequestHandler<AddToPlaylistCommand>,
+    IRequestHandler<AddToPlaylistCommand, bool>,
     IRequestHandler<RemoveFromPlaylistCommand>,
     IRequestHandler<ClearPlaylistCommand>
 {
@@ -21,8 +21,12 @@ public class PlaylistCommandHandlers :
         _context = context;
     }
 
-    public async Task Handle(AddToPlaylistCommand request, CancellationToken cancellationToken)
+    public async Task<bool> Handle(AddToPlaylistCommand request, CancellationToken cancellationToken)
     {
+        // Check if hymn is already in the playlist
+        var exists = await _context.MassPlaylist.AnyAsync(p => p.HymnId == request.HymnId, cancellationToken);
+        if (exists) return false;
+
         var maxOrder = await _context.MassPlaylist.AnyAsync(cancellationToken) 
             ? await _context.MassPlaylist.MaxAsync(p => p.Order, cancellationToken) 
             : 0;
@@ -35,6 +39,7 @@ public class PlaylistCommandHandlers :
 
         _context.MassPlaylist.Add(massHymn);
         await _context.SaveChangesAsync(cancellationToken);
+        return true;
     }
 
     public async Task Handle(RemoveFromPlaylistCommand request, CancellationToken cancellationToken)

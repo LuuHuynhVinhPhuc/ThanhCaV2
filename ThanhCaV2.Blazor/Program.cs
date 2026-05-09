@@ -19,6 +19,7 @@ builder.Services.AddDataProtection()
 builder.Services.AddHttpContextAccessor();
 
 builder.Services.AddHttpClient();
+builder.Services.AddScoped<ThanhCaV2.Blazor.Services.ToastService>();
 
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();

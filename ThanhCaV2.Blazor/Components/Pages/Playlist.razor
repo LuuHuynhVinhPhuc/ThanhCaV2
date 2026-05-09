@@ -4,6 +4,7 @@
 @using ThanhCaV2.Application.Playlist
 @inject IMediator Mediator
 @inject NavigationManager Navigation
+@inject ThanhCaV2.Blazor.Services.ToastService ToastService
 @rendermode InteractiveServer
 
 <PageTitle>Danh sách trình chiếu buổi lễ</PageTitle>
@@ -100,12 +101,14 @@
     private async Task RemoveFromPlaylist(Guid id)
     {
         await Mediator.Send(new RemoveFromPlaylistCommand(id));
+        ToastService.ShowInfo("Đã xóa khỏi danh sách lễ");
         await LoadPlaylist();
     }
 
     private async Task ClearPlaylist()
     {
         await Mediator.Send(new ClearPlaylistCommand());
+        ToastService.ShowSuccess("Đã dọn dẹp danh sách lễ");
         await LoadPlaylist();
     }
 }
