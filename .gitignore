@@ -28,10 +28,11 @@ appsettings.Local.json
 appsettings.Development.json
 secrets.json
 
-# SQLite Database files
+# SQLite Database and Data files
 *.db
 *.db-shm
 *.db-wal
+data/
 
 # Rider
 .idea/
