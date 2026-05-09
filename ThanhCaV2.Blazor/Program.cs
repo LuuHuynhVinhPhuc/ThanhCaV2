@@ -26,14 +26,6 @@ builder.Services.AddRazorComponents()
 
 var app = builder.Build();
 
-// Apply migrations
-using (var scope = app.Services.CreateScope())
-{
-    var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    context.Database.Migrate();
-}
-
-
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {

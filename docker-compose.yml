@@ -1,4 +1,15 @@
 services:
+  thanhca-migrator:
+    container_name: thanhca-migrator
+    image: thanhca-v2-migrator
+    build:
+      context: .
+      dockerfile: Dockerfile.Migrator
+    volumes:
+      - ./data:/app/data
+    environment:
+      - ConnectionStrings__DefaultConnection=Data Source=/app/data/ThanhCaV2.db
+
   thanhca-app:
     container_name: thanhca-web
     image: thanhca-v2-blazor
@@ -13,6 +24,9 @@ services:
       - ASPNETCORE_ENVIRONMENT=Production
       - ConnectionStrings__DefaultConnection=Data Source=/app/data/ThanhCaV2.db
     restart: always
+    depends_on:
+      thanhca-migrator:
+        condition: service_completed_successfully
 
 volumes:
   data:

@@ -1,0 +1,35 @@
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
+WORKDIR /app
+
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+WORKDIR /src
+
+# Copy project files
+COPY ["ThanhCaV2.MigratorDB/ThanhCaV2.MigratorDB.csproj", "ThanhCaV2.MigratorDB/"]
+COPY ["ThanhCaV2.Infrastructure/ThanhCaV2.Infrastructure.csproj", "ThanhCaV2.Infrastructure/"]
+COPY ["ThanhCaV2.Application/ThanhCaV2.Application.csproj", "ThanhCaV2.Application/"]
+COPY ["ThanhCaV2.Domain/ThanhCaV2.Domain.csproj", "ThanhCaV2.Domain/"]
+COPY ["ThanhCaV2.Share/ThanhCaV2.Share.csproj", "ThanhCaV2.Share/"]
+
+RUN dotnet restore "ThanhCaV2.MigratorDB/ThanhCaV2.MigratorDB.csproj"
+
+# Copy source code
+COPY . .
+WORKDIR "/src/ThanhCaV2.MigratorDB"
+
+# Build
+RUN dotnet build "ThanhCaV2.MigratorDB.csproj" -c Release -o /app/build
+
+# Publish
+FROM build AS publish
+RUN dotnet publish "ThanhCaV2.MigratorDB.csproj" -c Release -o /app/publish /p:UseAppHost=false
+
+# Final stage
+FROM base AS final
+WORKDIR /app
+COPY --from=publish /app/publish .
+
+RUN mkdir -p /app/data
+ENV ConnectionStrings__DefaultConnection="Data Source=/app/data/ThanhCaV2.db"
+
+ENTRYPOINT ["dotnet", "ThanhCaV2.MigratorDB.dll"]

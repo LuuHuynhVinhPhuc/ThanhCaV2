@@ -44,5 +44,4 @@ using (var scope = serviceProvider.CreateScope())
     }
 }
 
-Console.WriteLine("Migration completed. Press any key to exit...");
-Console.ReadKey();
+Console.WriteLine("Migration completed.");
