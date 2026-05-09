@@ -1,0 +1,8 @@
+<Solution>
+  <Project Path="ThanhCaV2.Application/ThanhCaV2.Application.csproj" />
+  <Project Path="ThanhCaV2.Blazor/ThanhCaV2.Blazor.csproj" />
+  <Project Path="ThanhCaV2.Domain/ThanhCaV2.Domain.csproj" />
+  <Project Path="ThanhCaV2.Infrastructure/ThanhCaV2.Infrastructure.csproj" />
+  <Project Path="ThanhCaV2.MigratorDB/ThanhCaV2.MigratorDB.csproj" />
+  <Project Path="ThanhCaV2.Share/ThanhCaV2.Share.csproj" />
+</Solution>

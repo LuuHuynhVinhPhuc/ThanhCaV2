@@ -1,0 +1,18 @@
+services:
+  thanhca-app:
+    container_name: thanhca-web
+    image: thanhca-v2-blazor
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "5000:80"
+    volumes:
+      - ./data:/app/data
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ConnectionStrings__DefaultConnection=Data Source=/app/data/ThanhCaV2.db
+    restart: always
+
+volumes:
+  data:

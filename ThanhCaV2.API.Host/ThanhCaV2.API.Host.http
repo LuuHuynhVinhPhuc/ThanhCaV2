@@ -1,0 +1,6 @@
+@ThanhCaV2.API.Host_HostAddress = http://localhost:5016
+
+GET {{ThanhCaV2.API.Host_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

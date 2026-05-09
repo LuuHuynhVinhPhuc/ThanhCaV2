@@ -1,0 +1,173 @@
+@page "/"
+@page "/hymns"
+@using MediatR
+@using ThanhCaV2.Application.Hymns
+@using ThanhCaV2.Application.Playlist
+@using ThanhCaV2.Share.Enums
+@inject IMediator Mediator
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+<PageTitle>Danh sách Thánh Ca</PageTitle>
+
+<div class="container mx-auto p-4 max-w-7xl">
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+        <h1 class="text-4xl font-extrabold tracking-tight text-white">Thánh Ca</h1>
+        <div class="flex gap-3">
+            <button class="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl shadow-lg shadow-indigo-500/20 transition-all duration-200 active:scale-95" @onclick='() => Navigation.NavigateTo("/hymns/new")'>
+                <i class="bi bi-plus-lg mr-2"></i> Thêm bài mới
+            </button>
+        </div>
+    </div>
+
+    <div class="bg-slate-800/50 backdrop-blur-xl border border-white/10 p-6 rounded-2xl shadow-2xl mb-8">
+        <div class="grid grid-cols-1 md:grid-cols-10 gap-4">
+            <div class="md:col-span-4">
+                <label class="block text-slate-400 text-xs font-semibold uppercase tracking-wider mb-1.5 ml-1">Tìm kiếm</label>
+                <div class="relative">
+                    <i class="bi bi-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"></i>
+                    <input type="text" class="w-full bg-slate-900/50 border border-white/5 focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/10 text-white pl-10 pr-4 py-2.5 rounded-xl outline-none transition-all" 
+                           placeholder="Tên bài hát..." @bind="searchTerm" @bind:event="oninput" @onkeyup="HandleSearch" />
+                </div>
+            </div>
+            <div class="md:col-span-2">
+                <label class="block text-slate-400 text-xs font-semibold uppercase tracking-wider mb-1.5 ml-1">Tác giả</label>
+                <input type="text" class="w-full bg-slate-900/50 border border-white/5 focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/10 text-white px-4 py-2.5 rounded-xl outline-none transition-all" 
+                       placeholder="Tác giả..." @bind="author" @bind:event="oninput" @onkeyup="HandleSearch" />
+            </div>
+            <div class="md:col-span-3">
+                <label class="block text-slate-400 text-xs font-semibold uppercase tracking-wider mb-1.5 ml-1">Mùa</label>
+                <select class="w-full bg-slate-900/50 border border-white/5 focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/10 text-white px-4 py-2.5 rounded-xl outline-none transition-all appearance-none cursor-pointer" @bind="selectedSeason">
+                    <option value="">Tất cả các mùa</option>
+                    @foreach (var season in Enum.GetValues<HymnSeason>())
+                    {
+                        <option value="@season">@season.ToFriendlyString()</option>
+                    }
+                </select>
+            </div>
+            <div class="md:col-span-1 flex items-end">
+                <button class="w-full h-[46px] bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl shadow-lg shadow-indigo-500/20 transition-all active:scale-95" @onclick="LoadHymns">
+                    Lọc
+                </button>
+            </div>
+        </div>
+    </div>
+
+    @if (paginatedList == null)
+    {
+        <div class="flex flex-col items-center justify-center py-20">
+            <div class="w-12 h-12 border-4 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin"></div>
+            <p class="mt-4 text-slate-400 font-medium animate-pulse">Đang tải dữ liệu...</p>
+        </div>
+    }
+    else if (!paginatedList.Items.Any())
+    {
+        <div class="bg-slate-800/30 border border-dashed border-white/10 rounded-2xl py-16 text-center">
+            <i class="bi bi-music-note-beamed text-5xl text-slate-600 mb-4 block"></i>
+            <p class="text-slate-400 text-lg">Không tìm thấy bài hát nào phù hợp.</p>
+        </div>
+    }
+    else
+    {
+        <div class="bg-slate-800/40 backdrop-blur-xl border border-white/10 rounded-3xl overflow-hidden shadow-2xl">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-slate-900/50 border-b border-white/5">
+                            <th class="px-6 py-4 text-slate-400 text-xs font-bold uppercase tracking-widest">Tên bài hát</th>
+                            <th class="px-6 py-4 text-slate-400 text-xs font-bold uppercase tracking-widest">Tác giả</th>
+                            <th class="px-6 py-4 text-slate-400 text-xs font-bold uppercase tracking-widest">Mùa</th>
+                            <th class="px-6 py-4 text-slate-400 text-xs font-bold uppercase tracking-widest text-center w-48">Tùy chọn</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-white/5">
+                        @foreach (var hymn in paginatedList.Items)
+                        {
+                            <tr class="group hover:bg-white/5 transition-colors">
+                                <td class="px-6 py-4">
+                                    <span class="text-lg font-bold text-white group-hover:text-indigo-400 transition-colors">@hymn.Title</span>
+                                </td>
+                                <td class="px-6 py-4 text-slate-400">@hymn.Author</td>
+                                <td class="px-6 py-4">
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 uppercase tracking-tighter">
+                                        @hymn.Season.ToFriendlyString()
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 text-center">
+                                    <div class="flex justify-center gap-2">
+                                        <button class="w-9 h-9 flex items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 hover:bg-emerald-500 hover:text-white transition-all shadow-lg shadow-emerald-500/10" 
+                                                @onclick="() => AddToPlaylist(hymn.Id)" title="Thêm vào lễ">
+                                            <i class="bi bi-plus-circle"></i>
+                                        </button>
+                                        <button class="flex items-center gap-2 px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-indigo-500/20 transition-all active:scale-95" 
+                                                @onclick='() => Navigation.NavigateTo($"/project/{hymn.Id}")'>
+                                            <i class="bi bi-play-fill"></i> Chiếu
+                                        </button>
+                                        <button class="w-9 h-9 flex items-center justify-center rounded-xl bg-sky-500/10 text-sky-500 border border-sky-500/20 hover:bg-sky-500 hover:text-white transition-all shadow-lg shadow-sky-500/10" 
+                                                @onclick='() => Navigation.NavigateTo($"/hymns/edit/{hymn.Id}")' title="Chỉnh sửa">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="flex justify-center mt-10">
+            <nav class="inline-flex bg-slate-900/50 p-1 rounded-xl border border-white/5 shadow-xl">
+                <button class="px-4 py-2 text-sm font-medium rounded-lg @(paginatedList.HasPreviousPage ? "text-white hover:bg-white/10" : "text-slate-600 cursor-not-allowed") transition-all" 
+                        @onclick="() => ChangePage(pageNumber - 1)" disabled="@(!paginatedList.HasPreviousPage)">
+                    <i class="bi bi-chevron-left mr-1"></i> Trước
+                </button>
+                <div class="px-4 py-2 text-sm font-bold text-indigo-400 flex items-center">
+                    Trang @pageNumber / @paginatedList.TotalPages
+                </div>
+                <button class="px-4 py-2 text-sm font-medium rounded-lg @(paginatedList.HasNextPage ? "text-white hover:bg-white/10" : "text-slate-600 cursor-not-allowed") transition-all" 
+                        @onclick="() => ChangePage(pageNumber + 1)" disabled="@(!paginatedList.HasNextPage)">
+                    Sau <i class="bi bi-chevron-right ml-1"></i>
+                </button>
+            </nav>
+        </div>
+    }
+</div>
+
+@code {
+    private PaginatedList<HymnDto>? paginatedList;
+    private string searchTerm = "";
+    private string author = "";
+    private HymnSeason? selectedSeason;
+    private int pageNumber = 1;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadHymns();
+    }
+
+    private async Task LoadHymns()
+    {
+        paginatedList = await Mediator.Send(new GetHymnsQuery(searchTerm, author, selectedSeason, pageNumber));
+    }
+
+    private async Task HandleSearch(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            pageNumber = 1;
+            await LoadHymns();
+        }
+    }
+
+    private async Task ChangePage(int newPage)
+    {
+        pageNumber = newPage;
+        await LoadHymns();
+    }
+
+    private async Task AddToPlaylist(Guid id)
+    {
+        await Mediator.Send(new AddToPlaylistCommand(id));
+    }
+}

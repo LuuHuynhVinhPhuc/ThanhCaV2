@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Const\**" />
+    <Compile Remove="Enums\**" />
+    <Compile Remove="IRepositories\**" />
+    <EmbeddedResource Remove="Const\**" />
+    <EmbeddedResource Remove="Enums\**" />
+    <EmbeddedResource Remove="IRepositories\**" />
+    <None Remove="Const\**" />
+    <None Remove="Enums\**" />
+    <None Remove="IRepositories\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ThanhCaV2.Share\ThanhCaV2.Share.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Models\" />
+  </ItemGroup>
+
+</Project>

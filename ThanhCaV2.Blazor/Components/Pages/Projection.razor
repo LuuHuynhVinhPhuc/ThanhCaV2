@@ -1,0 +1,166 @@
+@page "/project/{HymnId:guid}"
+@using MediatR
+@using ThanhCaV2.Application.Hymns
+@using ThanhCaV2.Share.Enums
+@inject IMediator Mediator
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+@rendermode InteractiveServer
+
+<PageTitle>Trình chiếu: @hymn?.Title</PageTitle>
+
+<div class="fixed inset-0 z-[9999] overflow-hidden flex items-center justify-center p-2 @(isBlackout ? "bg-black" : "bg-white")" 
+     @onkeydown="HandleKeyDown" tabindex="0" @ref="projectionDiv">
+    
+    @if (!isBlackout && hymn != null)
+    {
+        @if (currentIndex == -1)
+        {
+            <div class="w-full h-full flex flex-col items-center justify-center transition-all duration-300 p-12 overflow-hidden text-center">
+                <h1 class="text-[12vmin] md:text-[14vmin] font-bold text-black leading-tight uppercase tracking-wide font-serif mb-4">
+                    @hymn.Title
+                </h1>
+                <p class="text-[6vmin] md:text-[7vmin] text-black/80 font-serif">
+                    @hymn.Author
+                </p>
+            </div>
+        }
+        else if (currentSection != null)
+        {
+            <div class="w-full h-full flex flex-col items-center justify-center transition-all duration-300 p-12 overflow-hidden">
+                <h2 class="text-[10vmin] md:text-[11vmin] font-bold text-black leading-[1.1] tracking-tight font-serif text-center w-full max-w-[94vw] max-h-full">
+                    <span class="text-rose-600 mr-4">@(GetDisplayLabel(currentSection)):</span>
+                    @((MarkupString)currentSection.Content.Replace("\n", "<br/>"))
+                </h2>
+            </div>
+            
+            <div class="absolute bottom-2 right-4 text-sm font-serif text-black/10">
+                @(currentIndex + 1) / @slides.Count
+            </div>
+        }
+    }
+    
+    <div class="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-4 px-6 py-2 bg-slate-100 border border-slate-300 rounded-full shadow-md opacity-0 hover:opacity-100 transition-opacity duration-300">
+        <button class="text-slate-600 hover:text-black" @onclick="PreviousSection"><i class="bi bi-chevron-left"></i></button>
+        <span class="text-xs font-bold text-slate-500 font-sans">
+            @(currentIndex == -1 ? "Tiêu đề" : $"{(currentIndex + 1)} / {slides.Count}")
+        </span>
+        <button class="text-slate-600 hover:text-black" @onclick="NextSection"><i class="bi bi-chevron-right"></i></button>
+        <div class="w-px h-4 bg-slate-300 mx-2"></div>
+        <button class="text-rose-600 font-bold text-xs" @onclick='() => Navigation.NavigateTo("/hymns")'>THOÁT</button>
+    </div>
+</div>
+
+<style>
+    .sidebar, .top-row, header, footer, nav { display: none !important; }
+    main { padding: 0 !important; margin: 0 !important; max-width: none !important; }
+    body { 
+        overflow: hidden !important; 
+        background: white !important;
+    }
+    
+    .font-serif {
+        font-family: "Times New Roman", Times, serif !important;
+    }
+
+    h1, h2 {
+        word-wrap: break-word;
+        white-space: normal;
+    }
+    
+    .bg-black {
+        background-color: #000000 !important;
+    }
+</style>
+
+@code {
+    [Parameter] public Guid HymnId { get; set; }
+    private HymnDetailDto? hymn;
+    private LyricSectionDto? currentSection;
+    private int currentIndex = -1;
+    private bool isBlackout = false;
+    private ElementReference projectionDiv;
+    private List<LyricSectionDto> slides = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        hymn = await Mediator.Send(new GetHymnDetailQuery(HymnId));
+        if (hymn != null && hymn.Sections.Any())
+        {
+            if (!string.IsNullOrWhiteSpace(hymn.ProjectionSequence))
+            {
+                var ids = hymn.ProjectionSequence.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                foreach (var idStr in ids)
+                {
+                    if (Guid.TryParse(idStr, out var sectionId))
+                    {
+                        var section = hymn.Sections.FirstOrDefault(s => s.Id == sectionId);
+                        if (section != null) slides.Add(section);
+                    }
+                }
+            }
+
+            if (!slides.Any())
+            {
+                slides = hymn.Sections.OrderBy(s => s.Order).ToList();
+            }
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await projectionDiv.FocusAsync();
+        }
+    }
+
+    private string GetDisplayLabel(LyricSectionDto section)
+    {
+        if (!string.IsNullOrWhiteSpace(section.Label)) return section.Label;
+        if (section.Type == LyricType.DiepKhuc) return "ĐK";
+        return section.Type.ToFriendlyString();
+    }
+
+    private void HandleKeyDown(KeyboardEventArgs e)
+    {
+        var key = e.Key.ToLower();
+        if (key == "arrowright" || key == "pagedown" || key == " " || key == "enter")
+        {
+            NextSection();
+        }
+        else if (key == "arrowleft" || key == "pageup")
+        {
+            PreviousSection();
+        }
+        else if (key == "b" || e.Key == ".")
+        {
+            isBlackout = !isBlackout;
+            StateHasChanged();
+        }
+        else if (key == "escape")
+        {
+            Navigation.NavigateTo("/hymns");
+        }
+    }
+
+    private void NextSection()
+    {
+        if (currentIndex < slides.Count - 1)
+        {
+            currentIndex++;
+            currentSection = slides[currentIndex];
+            isBlackout = false;
+        }
+    }
+
+    private void PreviousSection()
+    {
+        if (currentIndex > -1)
+        {
+            currentIndex--;
+            currentSection = currentIndex == -1 ? null : slides[currentIndex];
+            isBlackout = false;
+        }
+    }
+}

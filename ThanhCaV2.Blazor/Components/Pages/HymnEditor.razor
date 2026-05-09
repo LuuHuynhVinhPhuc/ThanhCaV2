@@ -1,0 +1,273 @@
+@page "/hymns/new"
+@page "/hymns/edit/{Id:guid}"
+@using MediatR
+@using ThanhCaV2.Application.Hymns
+@using ThanhCaV2.Share.Enums
+@inject IMediator Mediator
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+<PageTitle>@(Id == null ? "Thêm bài mới" : "Chỉnh sửa bài hát")</PageTitle>
+
+<div class="container mx-auto p-4 max-w-6xl pb-20">
+    <div class="flex items-center gap-4 mb-8">
+        <button class="w-10 h-10 flex items-center justify-center rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white transition-all" @onclick='() => Navigation.NavigateTo("/hymns")'>
+            <i class="bi bi-arrow-left"></i>
+        </button>
+        <h1 class="text-3xl font-extrabold tracking-tight text-white">@(Id == null ? "Thêm bài mới" : "Chỉnh sửa bài hát")</h1>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="flex flex-col items-center justify-center py-20">
+            <div class="w-12 h-12 border-4 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin"></div>
+        </div>
+    }
+    else
+    {
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <div class="lg:col-span-8 space-y-6">
+                <div class="bg-slate-800/50 backdrop-blur-xl border border-white/10 p-6 rounded-3xl shadow-2xl">
+                    <h5 class="text-lg font-bold text-indigo-400 mb-6 flex items-center">
+                        <i class="bi bi-info-circle-fill mr-2"></i> Thông tin cơ bản
+                    </h5>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="md:col-span-2">
+                            <label class="block text-slate-400 text-xs font-bold uppercase tracking-wider mb-2 ml-1">Tên bài hát</label>
+                            <input type="text" class="w-full bg-slate-900/50 border border-white/5 focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/10 text-white px-4 py-3 rounded-2xl outline-none transition-all" 
+                                   @bind="hymn.Title" placeholder="Ví dụ: Cầu cho cha mẹ" />
+                        </div>
+                        <div>
+                            <label class="block text-slate-400 text-xs font-bold uppercase tracking-wider mb-2 ml-1">Tác giả</label>
+                            <input type="text" class="w-full bg-slate-900/50 border border-white/5 focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/10 text-white px-4 py-3 rounded-2xl outline-none transition-all" 
+                                   @bind="hymn.Author" placeholder="Tên nhạc sĩ..." />
+                        </div>
+                        <div>
+                            <label class="block text-slate-400 text-xs font-bold uppercase tracking-wider mb-2 ml-1">Mùa</label>
+                            <select class="w-full bg-slate-900/50 border border-white/5 focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/10 text-white px-4 py-3 rounded-2xl outline-none transition-all appearance-none cursor-pointer" @bind="hymn.Season">
+                                @foreach (var season in Enum.GetValues<HymnSeason>())
+                                {
+                                    <option value="@season">@season.ToFriendlyString()</option>
+                                }
+                            </select>
+                        </div>
+                        
+                        <div class="md:col-span-2">
+                            <label class="block text-slate-400 text-xs font-bold uppercase tracking-wider mb-4 ml-1 text-indigo-300">Thứ tự trình chiếu (Bấm để thêm)</label>
+                            
+                            <div class="flex flex-wrap gap-2 mb-6 p-4 bg-slate-900/40 rounded-2xl border border-white/5">
+                                @foreach (var section in sections.OrderBy(s => s.Order))
+                                {
+                                    <button class="px-3 py-2 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 rounded-xl text-xs font-bold transition-all active:scale-95 flex flex-col items-center min-w-[60px]"
+                                            @onclick="() => AddToSequence(section)">
+                                        <span class="opacity-50 text-[10px]">@(section.Type.ToFriendlyString())</span>
+                                        <span>@(string.IsNullOrWhiteSpace(section.Label) ? "..." : section.Label)</span>
+                                    </button>
+                                }
+                            </div>
+
+                            <div class="min-h-[70px] p-4 bg-slate-900/60 rounded-2xl border border-indigo-500/20 flex flex-wrap gap-2 items-center">
+                                @if (!selectedSections.Any())
+                                {
+                                    <span class="text-slate-600 text-sm italic px-2">Chưa có đoạn nào được chọn. Hãy bấm vào các nút phía trên để lập danh sách...</span>
+                                }
+                                else
+                                {
+                                    @for (int i = 0; i < selectedSections.Count; i++)
+                                    {
+                                        var index = i;
+                                        var s = selectedSections[index];
+                                        <div class="inline-flex items-center gap-2 px-3 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold shadow-lg shadow-indigo-500/20 group animate-in fade-in zoom-in duration-200">
+                                            <div class="flex flex-col leading-tight text-left">
+                                                <span class="text-[9px] opacity-70">@s.Type.ToFriendlyString()</span>
+                                                <span>@s.Label</span>
+                                            </div>
+                                            <button class="hover:text-rose-300 transition-colors ml-1" @onclick="() => RemoveFromSequence(index)">
+                                                <i class="bi bi-x-circle-fill"></i>
+                                            </button>
+                                        </div>
+                                        @if (index < selectedSections.Count - 1)
+                                        {
+                                            <i class="bi bi-chevron-right text-slate-700 text-[10px]"></i>
+                                        }
+                                    }
+                                }
+                                @if (selectedSections.Any())
+                                {
+                                    <button class="ml-auto text-[10px] uppercase font-bold text-slate-500 hover:text-rose-400 transition-colors px-3" @onclick="() => selectedSections.Clear()">
+                                        <i class="bi bi-trash mr-1"></i> Xóa hết
+                                    </button>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="space-y-4">
+                    <div class="flex justify-between items-center px-2">
+                        <h5 class="text-lg font-bold text-slate-300 flex items-center">
+                            <i class="bi bi-body-text mr-2 text-indigo-400"></i> Các phân đoạn lời
+                        </h5>
+                        <button class="inline-flex items-center px-4 py-2 bg-white/5 hover:bg-white/10 text-indigo-400 border border-indigo-500/20 text-sm font-bold rounded-xl transition-all" @onclick="AddSection">
+                            <i class="bi bi-plus-circle mr-2"></i> Thêm đoạn mới
+                        </button>
+                    </div>
+
+                    @foreach (var section in sections.OrderBy(s => s.Order))
+                    {
+                        <div class="bg-slate-800/40 backdrop-blur-md border border-white/5 p-5 rounded-3xl group relative">
+                            <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-start mb-4">
+                                <div class="md:col-span-4">
+                                    <select class="w-full bg-slate-900/60 border border-white/5 text-white px-3 py-2 rounded-xl text-sm outline-none appearance-none cursor-pointer" @bind="section.Type">
+                                        @foreach (var type in Enum.GetValues<LyricType>())
+                                        {
+                                            <option value="@type">@type.ToFriendlyString()</option>
+                                        }
+                                    </select>
+                                </div>
+                                <div class="md:col-span-3">
+                                    <input type="text" class="w-full bg-slate-900/60 border border-white/5 text-white px-3 py-2 rounded-xl text-sm outline-none placeholder:text-slate-600" 
+                                           @bind="section.Label" placeholder="Nhãn (1, ĐK...)" />
+                                </div>
+                                <div class="md:col-span-5 flex justify-end">
+                                    <button class="w-9 h-9 flex items-center justify-center rounded-xl bg-rose-500/10 text-rose-500 border border-rose-500/20 hover:bg-rose-500 hover:text-white transition-all" @onclick="() => RemoveSection(section)">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <textarea class="w-full bg-slate-900/40 border border-white/5 focus:border-indigo-500/30 text-white px-4 py-3 rounded-2xl outline-none transition-all font-serif italic text-lg leading-relaxed placeholder:text-slate-700" 
+                                      @bind="section.Content" rows="4" placeholder="Nhập lời bài hát cho đoạn này..."></textarea>
+                            
+                            <div class="absolute -left-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-slate-700 text-slate-400 text-[10px] flex items-center justify-center rounded-full border border-white/10 font-bold">
+                                @(section.Order)
+                            </div>
+                        </div>
+                    }
+                </div>
+
+                <div class="pt-6">
+                    <button class="w-full py-4 bg-indigo-600 hover:bg-indigo-500 text-white text-lg font-extrabold rounded-2xl shadow-2xl shadow-indigo-500/30 transition-all active:scale-95 flex items-center justify-center gap-3" @onclick="SaveHymn">
+                        <i class="bi bi-save-fill"></i> Lưu Thánh Ca
+                    </button>
+                </div>
+            </div>
+
+            <div class="lg:col-span-4">
+                <div class="bg-slate-900/50 backdrop-blur-xl border border-white/5 p-8 rounded-3xl sticky top-6 shadow-2xl">
+                    <h5 class="text-xl font-bold text-white mb-6 border-b border-white/5 pb-4">Bí kíp nhỏ</h5>
+                    <div class="space-y-6">
+                        <div class="flex gap-4">
+                            <div class="w-10 h-10 shrink-0 bg-indigo-500/10 rounded-xl flex items-center justify-center text-indigo-400">
+                                <i class="bi bi-lightbulb"></i>
+                            </div>
+                            <div>
+                                <h6 class="text-white font-bold text-sm mb-1">Định danh chính xác</h6>
+                                <p class="text-slate-400 text-xs leading-relaxed">Nút bấm hiển thị cả loại (PK/ĐK) và nhãn để bạn không bao giờ chọn nhầm đoạn.</p>
+                            </div>
+                        </div>
+                        <div class="flex gap-4">
+                            <div class="w-10 h-10 shrink-0 bg-emerald-500/10 rounded-xl flex items-center justify-center text-emerald-400">
+                                <i class="bi bi-layout-text-window"></i>
+                            </div>
+                            <div>
+                                <h6 class="text-white font-bold text-sm mb-1">Hiển thị đẹp</h6>
+                                <p class="text-slate-400 text-xs leading-relaxed">Nên chia mỗi đoạn lời khoảng 4-6 dòng để trình chiếu rõ nét nhất trên màn hình lớn.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public Guid? Id { get; set; }
+    private bool isLoading = false;
+    private HymnDetailDto hymn = new();
+    private List<LyricSectionDto> sections = new();
+    private List<LyricSectionDto> selectedSections = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Id != null)
+        {
+            isLoading = true;
+            var detail = await Mediator.Send(new GetHymnDetailQuery(Id.Value));
+            if (detail != null)
+            {
+                hymn = detail;
+                sections = detail.Sections;
+                
+                if (!string.IsNullOrWhiteSpace(hymn.ProjectionSequence))
+                {
+                    var ids = hymn.ProjectionSequence.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                    foreach (var idStr in ids)
+                    {
+                        if (Guid.TryParse(idStr, out var gId))
+                        {
+                            var s = sections.FirstOrDefault(x => x.Id == gId);
+                            if (s != null) selectedSections.Add(s);
+                        }
+                    }
+                }
+            }
+            isLoading = false;
+        }
+        else
+        {
+            AddSection();
+        }
+    }
+
+    private void AddToSequence(LyricSectionDto section)
+    {
+        selectedSections.Add(section);
+    }
+
+    private void RemoveFromSequence(int index)
+    {
+        if (index >= 0 && index < selectedSections.Count)
+        {
+            selectedSections.RemoveAt(index);
+        }
+    }
+
+    private void AddSection()
+    {
+        sections.Add(new LyricSectionDto 
+        { 
+            Id = Guid.NewGuid(),
+            Order = sections.Count + 1,
+            Type = LyricType.PhienKhuc
+        });
+    }
+
+    private void RemoveSection(LyricSectionDto section)
+    {
+        sections.Remove(section);
+        selectedSections.RemoveAll(x => x.Id == section.Id);
+        for (int i = 0; i < sections.Count; i++)
+        {
+            sections[i].Order = i + 1;
+        }
+    }
+
+    private async Task SaveHymn()
+    {
+        if (string.IsNullOrWhiteSpace(hymn.Title)) return;
+
+        hymn.ProjectionSequence = string.Join(",", selectedSections.Select(x => x.Id));
+
+        if (Id == null)
+        {
+            await Mediator.Send(new CreateHymnCommand(hymn.Title, hymn.Author, hymn.Season, hymn.Notes, hymn.ProjectionSequence, sections));
+        }
+        else
+        {
+            await Mediator.Send(new UpdateHymnCommand(Id.Value, hymn.Title, hymn.Author, hymn.Season, hymn.Notes, hymn.ProjectionSequence, sections));
+        }
+
+        Navigation.NavigateTo("/hymns");
+    }
+}

@@ -1,0 +1,25 @@
+@inherits LayoutComponentBase
+
+<div class="page">
+    <div class="sidebar">
+        <NavMenu />
+    </div>
+
+    <main class="bg-slate-950 min-h-screen">
+        <article class="content">
+            @Body
+        </article>
+    </main>
+</div>
+
+<div id="blazor-error-ui" data-nosnippet>
+    Đã có lỗi xảy ra.
+    <a href="." class="reload">Tải lại</a>
+    <span class="dismiss">🗙</span>
+</div>
+
+<style>
+    .top-row { display: none !important; }
+    main { background-color: #020617 !important; }
+    .content { padding: 0 !important; }
+</style>
