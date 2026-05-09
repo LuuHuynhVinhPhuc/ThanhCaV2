@@ -7,6 +7,7 @@
 @inject IMediator Mediator
 @inject NavigationManager Navigation
 @inject ThanhCaV2.Blazor.Services.ToastService ToastService
+@inject IJSRuntime JS
 @rendermode InteractiveServer
 
 <PageTitle>Danh sách Thánh Ca</PageTitle>
@@ -108,6 +109,10 @@
                                                 @onclick='() => Navigation.NavigateTo($"/hymns/edit/{hymn.Id}")' title="Chỉnh sửa">
                                             <i class="bi bi-pencil"></i>
                                         </button>
+                                        <button class="w-9 h-9 flex items-center justify-center rounded-xl bg-rose-500/10 text-rose-500 border border-rose-500/20 hover:bg-rose-500 hover:text-white transition-all shadow-lg shadow-rose-500/10" 
+                                                @onclick="() => DeleteHymn(hymn)" title="Xóa vĩnh viễn">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
                                     </div>
                                 </td>
                             </tr>
@@ -177,6 +182,17 @@
         else
         {
             ToastService.ShowWarning("Bài hát này đã có trong danh sách");
+        }
+    }
+
+    private async Task DeleteHymn(HymnDto hymn)
+    {
+        var confirmed = await JS.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa bài hát \"{hymn.Title}\" không?");
+        if (confirmed)
+        {
+            await Mediator.Send(new DeleteHymnCommand(hymn.Id));
+            ToastService.ShowSuccess($"Đã xóa bài hát \"{hymn.Title}\"");
+            await LoadHymns();
         }
     }
 }
