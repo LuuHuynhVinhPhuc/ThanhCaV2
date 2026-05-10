@@ -13,6 +13,7 @@ public enum LyricType
     PhienKhuc,
     DiepKhuc,
     Adlib,
-    Coda
+    Coda,
+    Alle
 }
 

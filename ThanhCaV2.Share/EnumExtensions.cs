@@ -20,6 +20,7 @@ public static class EnumExtensions
         {
             LyricType.PhienKhuc => "Phiên khúc",
             LyricType.DiepKhuc => "Điệp khúc",
+            LyricType.Alle => "Câu Alleluia",
             _ => type.ToString()
         };
     }
